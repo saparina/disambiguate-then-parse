@@ -1,0 +1,41 @@
+# Base settings that are always true
+default: &default
+  ambrosia_file: "data/ambrosia/data/ambrosia_resplit.csv"
+  data_dir: "data/"
+  filter_gold: true  # Always enabled
+  unambig_sql: false
+  icl_examples: 0
+  ambrosia_question_type: null  # Can be "ambig", "unambig", or null for all
+
+# Configuration for initial interpretation generation
+generate_interpretations:
+  train:
+    <<: *default
+    filter_interpr: true
+  validation:
+    <<: *default
+  test:
+    <<: *default
+    filter_interpr: false
+
+# Configuration for fine-tuning
+finetuning:
+  train:
+    <<: *default
+    filter_interpr: true
+    validation: true
+    ambiqt_interpr_file: "outputs/ambiqt_gold_interpretations/interpretations_tbl_col_train"
+  test:
+    <<: *default
+    filter_interpr: false
+
+# Configuration for text2sql baseline
+text2sql_baseline:
+  train:  # For ICL examples
+    <<: *default
+    filter_gold: false
+    filter_interpr: false
+  test:  # For evaluation
+    <<: *default
+    filter_gold: true
+    filter_interpr: false

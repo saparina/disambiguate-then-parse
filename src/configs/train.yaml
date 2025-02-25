@@ -1,0 +1,40 @@
+# General training config
+seed: 42
+exp_name: "finetune"
+output_dir: "outputs/finetune"
+overwrite_output_dir: true
+
+# Model configuration
+model_name: "meta-llama/Llama-3.1-8B-Instruct"
+model_sql_name: "meta-llama/Llama-3.1-8B-Instruct"
+max_seq_length: 8192
+load_in_4bit: false
+
+# Training configuration
+num_epochs: 15
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 4
+gradient_checkpointing: true
+warmup_steps: 5
+learning_rate: 5e-5
+weight_decay: 0.01
+lr_scheduler_type: "cosine"
+warmup_ratio: 0.01
+save_steps: 50
+logging_steps: 50
+load_best_model_at_end: false
+report_to: "wandb"
+eval_strategy: "epoch"
+eval_steps: 50
+
+max_grad_norm: 0.3
+auto_find_batch_size: false
+batch_eval_metrics: true
+group_by_length: true
+
+# LoRA configuration
+lora_r: 16
+lora_alpha: 16
+lora_dropout: 0.0
+neftune_noise_alpha: 5

@@ -1,0 +1,3 @@
+[submodule "data/AmbiQT"]
+	path = data/AmbiQT
+	url = https://github.com/testzer0/AmbiQT.git
