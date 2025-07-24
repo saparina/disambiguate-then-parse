@@ -47,6 +47,9 @@ def parse_args():
 def generate_interpretations(model, tokenizer, example, generation_config, num_attempts=5):
     """Generate interpretations for each gold query in the example"""
     interpretations = []
+    if example["nl_synonyms"] is None:
+        return interpretations
+    
     for idx in range(len(example['gold_queries'])):
         found = False
         for _ in range(num_attempts):

@@ -165,7 +165,14 @@ def save_results(results, metrics, statistics, args, output_path):
         "args": args_dict
     }
     
-    with open(output_path, 'w', encoding='utf-8') as f:
+    model_name = args.model_name.split('/')[-1].lower()
+    dataset_type = args.dataset_type
+    if dataset_type == "ambrosia" and "resplit" in args.ambrosia_file:
+        dataset_type = "ambrosia_resplit"
+    output_dir = output_path.parent / model_name / dataset_type
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_dir / output_path.name, 'w', encoding='utf-8') as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
 
 

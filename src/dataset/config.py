@@ -92,5 +92,7 @@ def load_dataset_config(
     dataset_config['sql_output_dir'] = sql_output_dir
     if 'ambrosia_file' in kwargs:
         dataset_config['ambrosia_file'] = kwargs['ambrosia_file']
+    if 'data_dir' in kwargs:
+        dataset_config['data_dir'] = kwargs['data_dir']
 
     return DataConfig(**dataset_config)

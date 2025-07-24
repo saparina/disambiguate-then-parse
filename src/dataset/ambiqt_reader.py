@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from dataset.db_utils import check_and_modify_names, create_db, db_to_text, dump_database, dump_database_raw, dump_database_split, dump_database_agg, merge_all_insert_statements_ambiqt
 
-def read_ambiqt(root_directory="/data/ambig-models/src/", output_dir="database_syn", split="validation", make_different_values=False, syn_types=["column", "table"]):
+def read_ambiqt(root_directory="data/", output_dir="database_syn", split="validation", make_different_values=False, syn_types=["column", "table"]):
     dataset = []
 
     syn_database_path = os.path.join(root_directory, f"AmbiQT/db-content/{output_dir}")
@@ -160,7 +160,7 @@ def read_ambiqt(root_directory="/data/ambig-models/src/", output_dir="database_s
 
     
 
-def fix_dataset_dbs(dataset, root_directory="/data/ambig-models/src/", output_dir="database_syn_eval"):
+def fix_dataset_dbs(dataset, root_directory="data/", output_dir="database_syn_eval"):
 
     syn_database_path = os.path.join(root_directory, f"AmbiQT/db-content/{output_dir}")
     if not os.path.exists(syn_database_path):

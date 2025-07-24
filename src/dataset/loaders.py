@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import json
 from typing import Union, Tuple
@@ -53,7 +54,7 @@ def load_ambrosia(config: DataConfig) -> pd.DataFrame:
 def load_ambiqt(config: DataConfig) -> pd.DataFrame:
     """Load and preprocess AmbiQT dataset"""
 
-    if config.ambiqt_interpr_file: #and (config.gold_interpr or config.learn_missing_interpr or config.learn_gold_interpr):
+    if config.ambiqt_interpr_file:
         # Load from interpretation file
         data = json.load(open(config.ambiqt_interpr_file, "r"))
         data = data[2:]  # Skip first two examples as per original code
@@ -70,6 +71,9 @@ def load_ambiqt(config: DataConfig) -> pd.DataFrame:
             axis=1
         )
         df = df.drop('interpretations', axis=1)
+
+        # Fix path to db file
+        df['db_file'] = df['db_file'].str.replace(r'.*?/AmbiQT/', os.path.join(config.data_dir, 'AmbiQT/'),regex=True)
     else:
         # Load raw data
         if config.split == "test" or config.split == "validation":
@@ -78,7 +82,7 @@ def load_ambiqt(config: DataConfig) -> pd.DataFrame:
             syn_types = ["column", "table"]
 
         data = read_ambiqt(config.data_dir, split="validation" if config.split == "test" else config.split, syn_types=syn_types)
-        data = fix_dataset_dbs(data)
+        data = fix_dataset_dbs(data, config.data_dir)
 
         if config.filter_gold:
             data = filter_gold(data)
@@ -164,6 +168,8 @@ def load_dataset(config: DataConfig) -> Union[Dataset, Tuple[Dataset, Dataset]]:
     
     # Load datasets based on config
     if config.dataset_type in ["ambrosia", "all"]:
+        ambrosia_dataset_type = config.dataset_type if "resplit" not in config.ambrosia_file else "ambrosia_resplit"
+
         df_ambrosia = load_ambrosia(config)
         
         # Filter by question type if specified
@@ -194,13 +200,15 @@ def load_dataset(config: DataConfig) -> Union[Dataset, Tuple[Dataset, Dataset]]:
             # Load interpretations for both datasets
             df_interpr_ambrosia = load_all_sql_interpretations(
                 output_dir=sql_output_dir,
-                dataset_type="ambrosia",
-                split=config.split
+                dataset_type=ambrosia_dataset_type,
+                split=config.split,
+                data_dir=config.data_dir
             )
             df_interpr_ambiqt = load_all_sql_interpretations(
                 output_dir=sql_output_dir,
                 dataset_type="ambiqt",
-                split=config.split if config.split != "validation" else "test"
+                split=config.split if config.split != "validation" else "test",
+                data_dir=config.data_dir
             )
             
             # Combine interpretations if both are available
@@ -218,16 +226,22 @@ def load_dataset(config: DataConfig) -> Union[Dataset, Tuple[Dataset, Dataset]]:
             else:
                 split = config.split
             
+            if config.dataset_type == "ambrosia":
+                dataset_type = ambrosia_dataset_type
+            else:
+                dataset_type = config.dataset_type
+
             # Load interpretations for single dataset
             df_interpr = load_all_sql_interpretations(
                 output_dir=sql_output_dir,
-                dataset_type=config.dataset_type,
-                split=split
+                dataset_type=dataset_type,
+                split=split,
+                data_dir=config.data_dir
             )
-        
+
         if df_interpr is not None:
             df = merge_interpretations(df, df_interpr)
-            logger.info(f"Added interpretations from multiple models. New dataset size: {len(df)}")
+            logger.info(f"Added interpretations. New dataset size: {len(df)}")
 
             # Calculate number of rows with all interpretations covered if column exists
             if 'missing_nl_interpretations' in df.columns:

@@ -1,0 +1,6 @@
+configargparse
+wandb
+sqlparse
+openai
+numpy
+datasets 

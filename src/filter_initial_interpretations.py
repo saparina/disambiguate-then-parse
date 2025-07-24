@@ -168,15 +168,24 @@ def main():
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Construct output filename
-    input_path = Path(args.input_file)
-    output_filename = f"{input_path.stem}_filtered{input_path.suffix}"
-    output_path = output_dir / output_filename
-    
-    # Load input data
-    print(f"Loading data from {args.input_file}")
+    # Load input data to get dataset type
     with open(args.input_file, 'r') as f:
         data = json.load(f)
+    dataset_type = data.get("args", {}).get("dataset_type", "unknown")
+    ambrosia_file = data.get("args", {}).get("ambrosia_file", "")
+    
+    # Handle ambrosia_resplit case
+    if dataset_type == "ambrosia" and "resplit" in ambrosia_file:
+        dataset_type = "ambrosia_resplit"
+    
+    # Create model and dataset specific output directory
+    model_name = Path(args.input_file).parent.name  # Get model name from parent directory
+    model_output_dir = output_dir / model_name / dataset_type
+    model_output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Construct output filename
+    output_filename = f"{Path(args.input_file).stem}_filtered{Path(args.input_file).suffix}"
+    output_path = model_output_dir / output_filename
     
     # Process each example
     filtered_results = []

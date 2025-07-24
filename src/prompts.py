@@ -26,7 +26,6 @@ Question:
 {}
 
 Please rewrite using "{}":
-
 """
 
 user_message_sql = """The task is to write SQL queries based on the provided questions in English. Questions can take the form of an instruction or command. Do not include any explanations, and do not select extra columns beyond those requested in the question.

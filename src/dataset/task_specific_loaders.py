@@ -25,6 +25,7 @@ def load_baseline_dataset(dataset_type: str, for_train: bool = False, **kwargs) 
         task_type=TaskType.TEXT2SQL_BASELINE,
         ambrosia_question_type=ambrosia_question_type,
         ambrosia_file=kwargs.pop('ambrosia_file', None),
+        data_dir=kwargs.pop('data_dir', None),
         **kwargs  # Pass through any additional config options
     )
     
@@ -41,29 +42,33 @@ def load_baseline_dataset(dataset_type: str, for_train: bool = False, **kwargs) 
 def load_finetuning_datasets(args):
     """Load datasets for finetuning"""
     logger.info(f"Loading {args.dataset_type} datasets for finetuning")
+    if args.mode == "test":
+        train_dataset, val_dataset = None, None
+    else:
+        train_config = load_dataset_config(
+            dataset_type=args.dataset_type,
+            split="train",
+            task_type=TaskType.FINETUNING,
+            sql_output_dir=args.sql_output_dir,
+            learn_missing_interpr=args.learn_missing_interpr,
+            learn_gold_interpr=args.learn_gold_interpr,
+            balance_dataset=args.balance_dataset,
+            ambrosia_question_type=args.question_type,
+            interpretation_model_train=args.interpretation_model_train,
+            interpretation_model_test=args.interpretation_model_test,
+            ambrosia_file=args.ambrosia_file,
+            data_dir=args.data_dir
+        )
+        
+        train_config.split = map_logical_to_file_split(
+            args.dataset_type, 
+            "train",
+            TaskType.FINETUNING
+        )
+        train_dataset, val_dataset = load_dataset(train_config)
+        logger.info(f"Loaded {len(train_dataset)} training examples")
+        logger.info(f"Loaded {len(val_dataset)} validation examples")
     
-    train_config = load_dataset_config(
-        dataset_type=args.dataset_type,
-        split="train",
-        task_type=TaskType.FINETUNING,
-        sql_output_dir=args.sql_output_dir,
-        learn_missing_interpr=args.learn_missing_interpr,
-        learn_gold_interpr=args.learn_gold_interpr,
-        balance_dataset=args.balance_dataset,
-        ambrosia_question_type=args.question_type,
-        interpretation_model_train=args.interpretation_model_train,
-        interpretation_model_test=args.interpretation_model_test,
-        ambrosia_file=args.ambrosia_file
-    )
-    
-    train_config.split = map_logical_to_file_split(
-        args.dataset_type, 
-        "train",
-        TaskType.FINETUNING
-    )
-    train_dataset, val_dataset = load_dataset(train_config)
-    logger.info(f"Loaded {len(train_dataset)} training examples")
-    logger.info(f"Loaded {len(val_dataset)} validation examples")
     
     test_config = load_dataset_config(
         dataset_type=args.dataset_type,
@@ -75,7 +80,8 @@ def load_finetuning_datasets(args):
         interpretation_model_test=args.interpretation_model_test,
         sql_output_dir=args.sql_output_dir,
         ambrosia_file=args.ambrosia_file,
-        ambrosia_question_type_test=args.question_type_test
+        ambrosia_question_type_test=args.question_type_test,
+        data_dir=args.data_dir
     )
     
     test_config.split = map_logical_to_file_split(
@@ -99,7 +105,8 @@ def load_interpretations_dataset(args) -> Dataset:
         split=args.split,
         task_type=TaskType.GENERATE_INTERPRETATIONS,
         ambrosia_file=getattr(args, 'ambrosia_file', None),
-        ambrosia_question_type_test=getattr(args, 'ambrosia_question_type_test', None)
+        ambrosia_question_type_test=getattr(args, 'ambrosia_question_type_test', None),
+        data_dir=getattr(args, 'data_dir', None)
     )
     
     config.split = map_logical_to_file_split(

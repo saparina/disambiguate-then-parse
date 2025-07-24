@@ -8,15 +8,15 @@ import yaml
 import wandb
 import configargparse
 
+from unsloth import FastLanguageModel, is_bfloat16_supported
+from unsloth.chat_templates import train_on_responses_only
+
 from transformers import DataCollatorForSeq2Seq
 from trl import SFTTrainer, SFTConfig
 from tqdm import tqdm
 
 import random
 import numpy as np
-
-from unsloth import FastLanguageModel, is_bfloat16_supported
-from unsloth.chat_templates import train_on_responses_only
 
 from utils import (
     EvaluationMetricsTracker, 
@@ -41,6 +41,8 @@ def init_seed(seed):
 
 # Log arguments for reproducibility
 def log_arguments(args, log_file="args.json"):
+    if not os.path.exists(os.path.dirname(log_file)):
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
     with open(log_file, "w") as f:
         json.dump(vars(args), f, indent=4)
 
@@ -125,7 +127,7 @@ def add_dataset_arguments(parser):
     parser.add_argument("--question_type", type=str, default=None, choices=[None, "ambig", "unambig"], help="Type of questions to use")
     parser.add_argument("--question_type_test", type=str, default=None, choices=[None, "ambig", "unambig"], help="Type of questions to use for test")
     parser.add_argument("--balance_dataset", action="store_true", help="Whether to balance dataset")
-    parser.add_argument("--sql_output_dir", type=str, default="outputs/sql_generation_filtered", help="Path to initial interpretaions with SQL queries.")
+    parser.add_argument("--sql_output_dir", type=str, default="outputs/initial_interpretations_with_sql_filtered", help="Path to initial interpretaions with SQL queries.")
 
 # Parse arguments dynamically from YAML
 def parse_args():
@@ -181,6 +183,7 @@ def train(args, train_dataset, val_dataset):
         random_state = args.seed,
         use_rslora = False,
         loftq_config = None,
+        temporary_location= "/data/tmp/"
     )
 
     peft_config = None
@@ -290,7 +293,7 @@ def train(args, train_dataset, val_dataset):
 
         return output_texts
 
-    log_arguments(args)
+    log_arguments(args, os.path.join(args.output_dir, "args.json"))
 
     trainer = SFTTrainer(
         model=model,
@@ -524,6 +527,9 @@ def inference(model, eval_dataset, res_path, user_message=None, skip_sql=False):
     # Get aggregated metrics
     aggregated_metrics = metrics_tracker.get_aggregated_metrics()
 
+    # Print metrics summary
+    metrics_tracker.print_summary()
+    
     # Save results and metrics
     json.dump({
         "metrics": aggregated_metrics,
@@ -533,9 +539,6 @@ def inference(model, eval_dataset, res_path, user_message=None, skip_sql=False):
     # Log metrics to wandb
     recall_ambig_total = aggregated_metrics["ambig"]["total"]["recall"]
     wandb.log({"recall_ambig_total": recall_ambig_total})
-
-    # Print metrics summary
-    metrics_tracker.print_summary()
 
     return aggregated_metrics
 
@@ -598,7 +601,9 @@ def test(args, checkpoint_path, test_dataset, dataset_type="ambrosia", user_mess
     file_name += f"_seed{args.seed}" if args.seed else ""
     file_name += f"_interpret_model_{args.interpretation_model_test}" if args.interpretation_model_test else ""
     file_name += f"_test_{dataset_type}"
-    file_name = os.path.join(checkpoint_path, file_name)
+    
+    if os.path.isdir(checkpoint_path):
+        file_name = os.path.join(checkpoint_path, file_name)
 
     # Add skip_sql parameter to inference call
     skip_sql = (args.learn_gold_interpr or args.learn_missing_interpr) and args.skip_sql_test

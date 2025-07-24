@@ -27,6 +27,8 @@ def parse_args():
                        help="Directory to save results")
     parser.add_argument("--exp_name", type=str,
                        help="Experiment name for results file")
+    parser.add_argument("--data_dir", type=str, default="data/",
+                        help="Directory with data (if needed to override the saved one)")
     
     # Model arguments
     parser.add_argument("--model_name", type=str, required=True,
@@ -60,7 +62,8 @@ def process_test_results(
     tokenizer,
     test_predictions: str,
     generation_config: Dict,
-    use_existing_sql_prediction: bool = False
+    use_existing_sql_prediction: bool = False,
+    data_dir: str = "data/"
 ) -> Dict:
     """Process test results file and generate/validate SQL for interpretations"""
     
@@ -119,10 +122,10 @@ def process_test_results(
         statistics["total_examples"] += 1
         
         result = {
-            "db_file": example["db_file"],
+            "db_file": example["db_file"].replace("data/", data_dir + "/"),
             "db_dump": example["db_dump"],
             "question": example["question"],
-            "gold_queries": example.get("gold_queries", []),
+            "gold_queries": example.get("gold_queries", []),    
             "is_ambiguous": example.get("is_ambiguous", True),
             "ambig_type": example.get("ambig_type", "total"),
             "predicted_interpr": example["predicted_interpr"],
@@ -169,7 +172,7 @@ def process_test_results(
         try:
             # Evaluate all SQL queries together
             sql_metrics = evaluate_predicted_statements(
-                example["db_file"],
+                result["db_file"],
                 all_sql_queries,
                 example.get("gold_queries", []),
                 remove_duplicates_predictions=False,
@@ -260,7 +263,8 @@ def main():
         tokenizer=tokenizer,
         test_predictions=args.test_predictions,
         generation_config=generation_config,
-        use_existing_sql_prediction=args.use_existing_sql_prediction
+        use_existing_sql_prediction=args.use_existing_sql_prediction,
+        data_dir=args.data_dir
     )
     
     # Save results

@@ -294,7 +294,6 @@ def read_predicted_interpretations(json_file: str) -> pd.DataFrame:
     # Process results and group interpretations by question
     results = []
     for entry in tqdm(data['results']):
-        # Create a single result with all interpretations
         result = {
             'db_file': entry['db_file'],
             'db_dump': entry['db_dump'],
@@ -312,31 +311,42 @@ def read_predicted_interpretations(json_file: str) -> pd.DataFrame:
     
     return pd.DataFrame(results)
 
-def load_all_sql_interpretations(output_dir: str, dataset_type: str, split: str) -> pd.DataFrame:
+def load_all_sql_interpretations(output_dir: str, dataset_type: str, split: str, data_dir: str = None) -> pd.DataFrame:
     """Load all SQL interpretation files for a given dataset type and split"""
-    # Define patterns for both training and validation files
-    patterns = [
-        f"sql_interp_*_{dataset_type}_{split}_*.json",  # Standard pattern
-        f"sql_interp_*_{dataset_type}_validation_*.json" if split == "train" else None,  # Validation pattern
-    ]
-    
-    # Collect all matching files
+    path = Path(output_dir).joinpath(dataset_type)
+
+    # Collect all matching files from each interpr_model directory
     dfs = []
-    for pattern in patterns:
-        if not pattern:
+    for interpr_model_dir in path.iterdir():
+        if not interpr_model_dir.is_dir():
             continue
         
-        files = list(Path(output_dir).glob(pattern))
-        if not files:
-            logger.info(f"No interpretation files found matching pattern: {pattern}")
-            continue
+        # Define patterns for both training and validation files
+        patterns = [
+            f"sql_interp_*_{split}_*.json",  # Standard pattern
+            f"sql_interp_*_validation_*.json" if split == "train" else None,  # Validation pattern
+        ]
+        
+        for pattern in patterns:
+            if not pattern:
+                continue
             
-        # Read and combine all matching files
-        for file in files:
-            df = read_predicted_interpretations(str(file))
-            if df is not None:
-                logger.info(f"Loaded interpretations from {file}")
-                dfs.append(df)
+            files = list(interpr_model_dir.glob(pattern))
+            if not files:
+                logger.info(f"No interpretation files found in {interpr_model_dir} matching pattern: {pattern}")
+                continue
+                
+            # Read and combine all matching files
+            for file in files:
+                df = read_predicted_interpretations(str(file))
+                if "ambrosia" in dataset_type:
+                    df['db_file'] = df['db_file'].str.replace('data/', data_dir + '/ambrosia/data/')
+                else:
+                    df['db_file'] = df['db_file'].str.replace(r'.*?/AmbiQT/', os.path.join(data_dir, 'AmbiQT/'),regex=True)
+
+                if df is not None:
+                    logger.info(f"Loaded interpretations from {file}")
+                    dfs.append(df)
     
     if not dfs:
         logger.warning(f"No interpretation files found for {dataset_type}/{split} in {output_dir}")
