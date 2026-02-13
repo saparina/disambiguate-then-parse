@@ -56,7 +56,7 @@ mkdir db-content/database_syn db-content/database_syn_eval
 
 You also need to download the `Ambrosia` dataset from the [official website](https://ambrosia-benchmark.github.io/) and put it in the `data/ambrosia` folder.
 
-To resplit the Ambrosia dataset for training, you can use the `src/utils/resplit_ambrosia.py` script.
+To resplit the Ambrosia dataset for training, you can use the `src/utils/resplit_ambrosia.py` script or download the file from [here](https://datasync.ed.ac.uk/index.php/s/emc8oT0t86P8t98). The password is the same as for the Ambrosia dataset (see the [official website](https://ambrosia-benchmark.github.io/)).
 
 Gold interpretations for AmbiQT are stored in the `data/ambiqt_gold_interpretations` folder. To reproduce them, you can use the `src/annotate_ambiqt_with_gold_interpretations.py` script:
 
